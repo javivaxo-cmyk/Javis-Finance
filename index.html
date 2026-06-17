@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Private, offline-first personal finance tracker." />
+
+  <title>Javi's Finance</title>
+
+  <!-- PWA / iOS Home Screen configuration -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Finance" />
+  <link rel="apple-touch-icon" href="./icons/icon.svg" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- ============ APP HEADER ============ -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <h1 class="app-title" id="screenTitle">Dashboard</h1>
+      <div class="app-header__month">
+        <button class="icon-btn" id="prevMonth" aria-label="Previous month">‹</button>
+        <span id="currentMonthLabel">—</span>
+        <button class="icon-btn" id="nextMonth" aria-label="Next month">›</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="app-main" id="appMain">
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <section class="screen is-active" id="screen-dashboard" data-screen="dashboard">
+      <div class="status-banner" id="statusBanner">
+        <span class="status-badge" id="statusBadge">—</span>
+        <p id="statusMessage">Loading your finances…</p>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card stat">
+          <span class="stat__label">Income (month)</span>
+          <span class="stat__value" id="dashIncome">—</span>
+        </div>
+        <div class="card stat">
+          <span class="stat__label">Spent (month)</span>
+          <span class="stat__value" id="dashSpent">—</span>
+        </div>
+        <div class="card stat">
+          <span class="stat__label">Remaining</span>
+          <span class="stat__value" id="dashRemaining">—</span>
+        </div>
+        <div class="card stat">
+          <span class="stat__label">Savings est.</span>
+          <span class="stat__value" id="dashSavings">—</span>
+        </div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card mini">
+          <span class="mini__label">Savings rate</span>
+          <span class="mini__value" id="dashSavingsRate">—</span>
+        </div>
+        <div class="card mini">
+          <span class="mini__label">Daily avg</span>
+          <span class="mini__value" id="dashDailyAvg">—</span>
+        </div>
+        <div class="card mini">
+          <span class="mini__label">No-spend streak</span>
+          <span class="mini__value" id="dashStreak">—</span>
+        </div>
+        <div class="card mini">
+          <span class="mini__label">Subs total</span>
+          <span class="mini__value" id="dashSubsTotal">—</span>
+        </div>
+        <div class="card mini">
+          <span class="mini__label">Subs % income</span>
+          <span class="mini__value" id="dashSubsPct">—</span>
+        </div>
+        <div class="card mini">
+          <span class="mini__label">Budget used</span>
+          <span class="mini__value" id="dashBudgetPct">—</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card__title">Progress</h3>
+        <div class="bar-group">
+          <div class="bar-row">
+            <span class="bar-row__label">Spending vs income <em id="lblSpendIncome"></em></span>
+            <div class="bar"><div class="bar__fill" id="barSpendIncome"></div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-row__label">Spending vs budget <em id="lblSpendBudget"></em></span>
+            <div class="bar"><div class="bar__fill" id="barSpendBudget"></div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-row__label">Subscriptions vs income <em id="lblSubsIncome"></em></span>
+            <div class="bar"><div class="bar__fill" id="barSubsIncome"></div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-row__label">Savings goal <em id="lblSavingsGoal"></em></span>
+            <div class="bar"><div class="bar__fill" id="barSavingsGoal"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card__title">Quick add expense</h3>
+        <form id="quickAddForm" class="form quick-form">
+          <div class="form-row">
+            <label>Amount
+              <input type="number" step="0.01" min="0" inputmode="decimal" id="qaAmount" placeholder="0.00" required />
+            </label>
+            <label>Category
+              <select id="qaCategory"></select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Description
+              <input type="text" id="qaDescription" placeholder="e.g. Lunch" />
+            </label>
+            <label>Date
+              <input type="date" id="qaDate" required />
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Add expense</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------- TRANSACTIONS ---------- -->
+    <section class="screen" id="screen-transactions" data-screen="transactions">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="addTxnBtn">+ Add transaction</button>
+      </div>
+      <div class="card filters">
+        <div class="form-row">
+          <label>Search
+            <input type="search" id="txnSearch" placeholder="Description…" />
+          </label>
+          <label>Category
+            <select id="txnFilterCategory"><option value="">All</option></select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Type
+            <select id="txnFilterType">
+              <option value="">All</option>
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </label>
+          <label>Sort
+            <select id="txnSort">
+              <option value="date-desc">Date ↓</option>
+              <option value="date-asc">Date ↑</option>
+              <option value="amount-desc">Amount ↓</option>
+              <option value="amount-asc">Amount ↑</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="txnList" class="list"></div>
+    </section>
+
+    <!-- ---------- SUBSCRIPTIONS ---------- -->
+    <section class="screen" id="screen-subscriptions" data-screen="subscriptions">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="addSubBtn">+ Add subscription</button>
+      </div>
+      <div class="grid grid-2">
+        <div class="card stat"><span class="stat__label">Monthly total</span><span class="stat__value" id="subMonthly">—</span></div>
+        <div class="card stat"><span class="stat__label">Yearly total</span><span class="stat__value" id="subYearly">—</span></div>
+        <div class="card mini"><span class="mini__label">% of income</span><span class="mini__value" id="subPct">—</span></div>
+        <div class="card mini"><span class="mini__label">Optional total</span><span class="mini__value" id="subOptional">—</span></div>
+      </div>
+      <div class="card" id="subInsightCard">
+        <h3 class="card__title">Most expensive</h3>
+        <p id="subMostExpensive" class="muted">—</p>
+        <div id="subSuggestions"></div>
+      </div>
+      <div id="subList" class="list"></div>
+    </section>
+
+    <!-- ---------- PURCHASE DECISION ---------- -->
+    <section class="screen" id="screen-decision" data-screen="decision">
+      <div class="grid grid-3">
+        <div class="card mini"><span class="mini__label">Avoided (rejected)</span><span class="mini__value" id="decAvoided">—</span></div>
+        <div class="card mini"><span class="mini__label">Delayed</span><span class="mini__value" id="decDelayed">—</span></div>
+        <div class="card mini"><span class="mini__label">Unnecessary avoided</span><span class="mini__value" id="decCount">—</span></div>
+      </div>
+
+      <div class="card">
+        <h3 class="card__title">Should I buy it?</h3>
+        <form id="decisionForm" class="form">
+          <div class="form-row">
+            <label>Item name<input type="text" id="decName" required placeholder="e.g. Headphones" /></label>
+            <label>Cost<input type="number" step="0.01" min="0" inputmode="decimal" id="decCost" required placeholder="0.00" /></label>
+          </div>
+          <label>Category<select id="decCategory"></select></label>
+          <div class="check-grid">
+            <label class="check"><input type="checkbox" id="decNecessary" /> Is it necessary?</label>
+            <label class="check"><input type="checkbox" id="decSupports" /> Supports health / work / family?</label>
+            <label class="check"><input type="checkbox" id="decCanWait" /> Can it wait 7 days?</label>
+            <label class="check"><input type="checkbox" id="decFreeAlt" /> Is there a free alternative?</label>
+          </div>
+          <label>Notes<textarea id="decNotes" rows="2" placeholder="Optional"></textarea></label>
+          <button type="submit" class="btn btn-primary btn-block">Evaluate</button>
+        </form>
+        <div id="decisionResult" class="decision-result hidden"></div>
+      </div>
+
+      <h3 class="section-heading">History</h3>
+      <div id="decList" class="list"></div>
+    </section>
+
+    <!-- ---------- BUDGET ---------- -->
+    <section class="screen" id="screen-budget" data-screen="budget">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="addBudgetBtn">+ Add budget</button>
+      </div>
+      <div id="budgetAlerts"></div>
+      <div id="budgetList" class="list"></div>
+    </section>
+
+    <!-- ---------- REPORTS ---------- -->
+    <section class="screen" id="screen-reports" data-screen="reports">
+      <div class="card">
+        <h3 class="card__title">Monthly summary</h3>
+        <p id="reportSummary" class="muted">—</p>
+      </div>
+      <div class="grid grid-2">
+        <div class="card stat"><span class="stat__label">Income</span><span class="stat__value" id="repIncome">—</span></div>
+        <div class="card stat"><span class="stat__label">Expenses</span><span class="stat__value" id="repExpenses">—</span></div>
+        <div class="card stat"><span class="stat__label">Net savings</span><span class="stat__value" id="repNet">—</span></div>
+        <div class="card stat"><span class="stat__label">Savings rate</span><span class="stat__value" id="repRate">—</span></div>
+      </div>
+      <div class="card">
+        <h3 class="card__title">Budget performance</h3>
+        <p id="repBudget" class="muted">—</p>
+      </div>
+      <div class="card">
+        <h3 class="card__title">Expenses by category</h3>
+        <div id="repCategoryChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h3 class="card__title">Essential vs optional</h3>
+        <div id="repNecessityChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h3 class="card__title">Top 5 expenses</h3>
+        <div id="repTopList" class="list"></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="exportReportCsv">Export report CSV</button>
+      </div>
+    </section>
+
+    <!-- ---------- SETTINGS ---------- -->
+    <section class="screen" id="screen-settings" data-screen="settings">
+      <div class="card">
+        <h3 class="card__title">Income & goals</h3>
+        <form id="settingsForm" class="form">
+          <div class="form-row">
+            <label>Biweekly income<input type="number" step="0.01" min="0" id="setBiweekly" /></label>
+            <label>Monthly income<input type="number" step="0.01" min="0" id="setMonthly" /></label>
+          </div>
+          <div class="form-row">
+            <label>Income frequency
+              <select id="setFrequency">
+                <option value="biweekly">Biweekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+            <label>Currency symbol<input type="text" id="setCurrency" maxlength="4" /></label>
+          </div>
+          <div class="form-row">
+            <label>Savings goal %<input type="number" step="1" min="0" max="100" id="setSavingsPct" /></label>
+            <label>Spending limit %<input type="number" step="1" min="0" max="100" id="setSpendPct" /></label>
+          </div>
+          <div class="form-row">
+            <label>Default monthly budget<input type="number" step="0.01" min="0" id="setMonthlyBudget" /></label>
+            <label>First day of month<input type="number" min="1" max="28" id="setFirstDay" /></label>
+          </div>
+          <label>Theme
+            <select id="setTheme">
+              <option value="system">System</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">Save settings</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="card__title">Categories</h3>
+        <p class="muted small">Expense categories (comma separated)</p>
+        <textarea id="setExpenseCats" rows="3"></textarea>
+        <p class="muted small">Income categories (comma separated)</p>
+        <textarea id="setIncomeCats" rows="2"></textarea>
+        <button class="btn btn-block" id="saveCatsBtn">Save categories</button>
+      </div>
+
+      <div class="card">
+        <h3 class="card__title">Backup & data</h3>
+        <div class="btn-stack">
+          <button class="btn" id="exportJsonBtn">Export all (JSON)</button>
+          <button class="btn" id="exportTxnCsvBtn">Export transactions (CSV)</button>
+          <button class="btn" id="exportBudgetCsvBtn">Export budgets (CSV)</button>
+          <label class="btn btn-file">Import JSON backup
+            <input type="file" id="importJsonInput" accept="application/json,.json" hidden />
+          </label>
+          <button class="btn btn-danger" id="resetBtn">Reset all data</button>
+        </div>
+      </div>
+
+      <p class="muted small center">Javi's Finance · v1.0.0 · all data stored locally on this device.</p>
+    </section>
+  </main>
+
+  <!-- ============ BOTTOM NAVIGATION ============ -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn is-active" data-nav="dashboard"><span class="nav-ico">▦</span><span>Home</span></button>
+    <button class="nav-btn" data-nav="transactions"><span class="nav-ico">≣</span><span>Txns</span></button>
+    <button class="nav-btn" data-nav="subscriptions"><span class="nav-ico">↻</span><span>Subs</span></button>
+    <button class="nav-btn" data-nav="decision"><span class="nav-ico">?</span><span>Decide</span></button>
+    <button class="nav-btn" data-nav="budget"><span class="nav-ico">◑</span><span>Budget</span></button>
+    <button class="nav-btn" data-nav="reports"><span class="nav-ico">▤</span><span>Report</span></button>
+    <button class="nav-btn" data-nav="settings"><span class="nav-ico">⚙</span><span>More</span></button>
+  </nav>
+
+  <!-- ============ MODAL CONTAINER ============ -->
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal__head">
+        <h3 id="modalTitle">Title</h3>
+        <button class="icon-btn" id="modalClose" aria-label="Close">✕</button>
+      </div>
+      <div class="modal__body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- ============ TOAST ============ -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
