@@ -928,8 +928,35 @@ function confirmAction(message, onYes) {
 /* -----------------------------------------------------------
    19. EXPORT / IMPORT
    ----------------------------------------------------------- */
-function download(filename, text, mime) {
-  const blob = new Blob([text], { type: mime || "text/plain" });
+// True when running as an installed PWA (iOS home-screen or display-mode: standalone).
+// In that mode iOS has no download manager, so <a download> + click() silently fails.
+function isStandalonePWA() {
+  return window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+}
+
+async function download(filename, text, mime) {
+  const type = mime || "text/plain";
+  const blob = new Blob([text], { type });
+
+  // Inside an installed PWA, prefer the Web Share API with a real file — on iOS this
+  // opens the native share sheet with "Save to Files", which is the only reliable path.
+  // Must run synchronously within the click gesture, so do it before any other await.
+  if (isStandalonePWA() && typeof File === "function") {
+    try {
+      const file = new File([blob], filename, { type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      }
+    } catch (err) {
+      // User dismissed the share sheet — treat as done, don't double-prompt with a download.
+      if (err && err.name === "AbortError") return;
+      // Anything else: fall through to the anchor download below.
+    }
+  }
+
+  // Desktop browsers (and any platform without file-share support): direct download.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename;
