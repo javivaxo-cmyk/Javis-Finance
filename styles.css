@@ -168,6 +168,8 @@ body {
 /* ---------------- Forms ---------------- */
 .form { display: flex; flex-direction: column; gap: 12px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* min-width:0 lets grid children shrink instead of forcing overflow */
+.form-row > label { min-width: 0; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--text-dim); }
 input, select, textarea {
   background: var(--bg-elev-2);
@@ -178,6 +180,13 @@ input, select, textarea {
   font-size: 1rem;
   font-family: inherit;
   width: 100%;
+  min-width: 0;          /* allow inputs to shrink within their container */
+  max-width: 100%;
+}
+/* WebKit/iOS date inputs have a wide intrinsic size; keep them in the box */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--accent);
