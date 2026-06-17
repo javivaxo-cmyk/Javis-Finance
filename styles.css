@@ -167,8 +167,9 @@ body {
 
 /* ---------------- Forms ---------------- */
 .form { display: flex; flex-direction: column; gap: 12px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-/* min-width:0 lets grid children shrink instead of forcing overflow */
+/* minmax(0,1fr) — not plain 1fr — lets columns shrink below their content's
+   intrinsic width, which is what stops iOS date inputs from overflowing. */
+.form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .form-row > label { min-width: 0; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--text-dim); }
 input, select, textarea {
@@ -183,10 +184,23 @@ input, select, textarea {
   min-width: 0;          /* allow inputs to shrink within their container */
   max-width: 100%;
 }
-/* WebKit/iOS date inputs have a wide intrinsic size; keep them in the box */
-input[type="date"] {
+/* iOS/WebKit date & time inputs report a wide intrinsic size and ignore width
+   unless appearance is reset; these rules keep them inside their box. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
   -webkit-appearance: none;
   appearance: none;
+  box-sizing: border-box;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  min-width: 0;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-inline-start: auto;
+  padding: 0;
 }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--accent);
