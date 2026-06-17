@@ -2,7 +2,7 @@
  * Caches the app shell so the app works fully offline after first load.
  * Bump CACHE_VERSION whenever any cached file changes to force an update.
  */
-const CACHE_VERSION = "javis-finance-v2";
+const CACHE_VERSION = "javis-finance-v3";
 const APP_SHELL = [
   "./",
   "./index.html",

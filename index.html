@@ -314,11 +314,19 @@
           <button class="btn" id="exportJsonBtn">Export all (JSON)</button>
           <button class="btn" id="exportTxnCsvBtn">Export transactions (CSV)</button>
           <button class="btn" id="exportBudgetCsvBtn">Export budgets (CSV)</button>
+          <button class="btn" id="downloadCsvTemplateBtn">Download CSV template</button>
+          <label class="btn btn-file">Import transactions (CSV)
+            <input type="file" id="importTxnCsvInput" accept=".csv,text/csv" hidden />
+          </label>
           <label class="btn btn-file">Import JSON backup
             <input type="file" id="importJsonInput" accept="application/json,.json" hidden />
           </label>
           <button class="btn btn-danger" id="resetBtn">Reset all data</button>
         </div>
+        <p class="muted small">CSV template columns: <code>date, type, amount, category,
+          description, necessity, paymentMethod, notes</code>. Dates use
+          <code>YYYY-MM-DD</code>. Importing a CSV <b>adds</b> rows to your existing
+          transactions (it doesn't overwrite them).</p>
       </div>
 
       <p class="muted small center">Javi's Finance · v1.0.0 · all data stored locally on this device.</p>

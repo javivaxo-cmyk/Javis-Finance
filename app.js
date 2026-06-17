@@ -987,6 +987,118 @@ function exportCSV(type) {
   toast("CSV exported.");
 }
 
+// Download a ready-to-fill CSV template with example rows.
+function downloadCsvTemplate() {
+  const header = ["date", "type", "amount", "category", "description", "necessity", "paymentMethod", "notes"];
+  const example1 = ["2026-06-17", "expense", "250.00", "Food", "Lunch", "useful", "debit", "Example row - delete me"];
+  const example2 = ["2026-06-15", "income", "9250.00", "Salary", "Quincena", "essential", "transfer", "Example row - delete me"];
+  const csv = [header, example1, example2].map((r) => r.map(csvEscape).join(",")).join("\n");
+  download("transactions-template.csv", csv, "text/csv");
+  toast("Template downloaded.");
+}
+
+// Minimal but correct CSV parser: handles quoted fields, escaped quotes ("")
+// and commas/newlines inside quotes. Returns an array of string[] rows.
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field); field = "";
+    } else if (c === "\n") {
+      row.push(field); rows.push(row); row = []; field = "";
+    } else if (c !== "\r") {
+      field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  // Drop fully-empty rows.
+  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
+}
+
+// Accept YYYY-MM-DD (and forgiving variants like 2026/6/7) -> normalized ISO.
+function normalizeDate(s) {
+  const m = String(s).trim().replace(/\//g, "-").match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return null;
+  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+}
+
+// Import transactions from a CSV file (appends to existing data).
+function importTransactionsCSV(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const rows = parseCSV(reader.result);
+      if (rows.length < 2) { toast("CSV is empty or has no data rows."); return; }
+
+      // Map columns by header name (case-insensitive, order-independent).
+      const header = rows[0].map((h) => h.trim().toLowerCase());
+      const idx = (...names) => {
+        for (const n of names) { const i = header.indexOf(n); if (i !== -1) return i; }
+        return -1;
+      };
+      const col = {
+        date: idx("date"), type: idx("type"), amount: idx("amount"),
+        category: idx("category"), description: idx("description"),
+        necessity: idx("necessity"), payment: idx("paymentmethod", "payment"),
+        notes: idx("notes")
+      };
+      if (col.date === -1 || col.amount === -1) {
+        toast("CSV needs at least 'date' and 'amount' columns.");
+        return;
+      }
+
+      const NECESSITY = ["essential", "useful", "unnecessary"];
+      const PAYMENT = ["cash", "debit", "credit", "transfer", "other"];
+      const newTxns = [];
+      let skipped = 0;
+
+      for (let r = 1; r < rows.length; r++) {
+        const cells = rows[r];
+        const get = (k) => (col[k] >= 0 ? (cells[col[k]] ?? "").trim() : "");
+
+        const date = normalizeDate(get("date"));
+        const amount = parseFloat(get("amount"));
+        if (!date || isNaN(amount) || amount < 0) { skipped++; continue; }
+
+        const type = get("type").toLowerCase() === "income" ? "income" : "expense";
+        let necessity = get("necessity").toLowerCase();
+        if (!NECESSITY.includes(necessity)) necessity = "useful";
+        let payment = get("payment").toLowerCase();
+        if (!PAYMENT.includes(payment)) payment = "other";
+
+        newTxns.push({
+          id: uid(), type, amount, date,
+          category: get("category") || "Other",
+          description: get("description"),
+          necessity, paymentMethod: payment,
+          notes: get("notes")
+        });
+      }
+
+      if (!newTxns.length) { toast("No valid rows found in CSV."); return; }
+
+      state.transactions.push(...newTxns);
+      saveData();
+      renderAll();
+      toast(`Imported ${newTxns.length} transaction(s)` + (skipped ? `, skipped ${skipped}.` : "."));
+    } catch (err) {
+      console.error(err);
+      toast("CSV import failed — check the file format.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 function importJSON(file) {
   const reader = new FileReader();
   reader.onload = () => {
@@ -1171,6 +1283,12 @@ function wireEvents() {
   $("#exportTxnCsvBtn").addEventListener("click", () => exportCSV("transactions"));
   $("#exportBudgetCsvBtn").addEventListener("click", () => exportCSV("budgets"));
   $("#exportReportCsv").addEventListener("click", () => exportCSV("report"));
+  $("#downloadCsvTemplateBtn").addEventListener("click", downloadCsvTemplate);
+  $("#importTxnCsvInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) confirmAction("Add the transactions from this CSV to your data?", () => importTransactionsCSV(file));
+    e.target.value = "";
+  });
   $("#importJsonInput").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) confirmAction("Importing will overwrite all current data. Continue?", () => importJSON(file));
